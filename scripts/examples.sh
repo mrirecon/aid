@@ -45,7 +45,7 @@ sampling_brain()
 logdir=logs
 filename=file_brain_AXT1POST_200_6002026
 
-#download_pretrained $logdir
+download_pretrained $logdir
 sampling_brain $logdir $logdir/image_seq.cfl
 unfolding $logdir $filename $logdir
 reconstruction $logdir $filename $logdir

@@ -4,13 +4,19 @@ download_pretrained(){
     echo "Downloading pretrained models"
     mkdir -p $1
     cd $1
+
     wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/AID/fastmri_320_cplx.pt
     wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/AID/normal_fastmri_320_cplx.pt
+    wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/AID/cardiac_latent.pt
     wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/image_seq.cfl
     wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/image_seq.hdr
+    wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/cardiac_seq.cfl
+    wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/cardiac_seq.hdr
     wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/file_brain_AXT1POST_200_6002026.h5
     wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/bart
-    
+    wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Autoencoder/vqvae/vq_cardiac_d4.ckpt
+    wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Autoencoder/vqvae/vq_cardiac_d4.yaml
+
     chmod +x bart
     export BART_PATH=$PWD/bart
     cd -
@@ -48,10 +54,20 @@ sampling_brain()
     --datadir $2
 }
 
+sampling_cardiac()
+{
+    torchrun --nnodes 1 --nproc-per-node 1 sample.py \
+    --config configs/cardiac_latent.yaml --model $1/cardiac_latent.pt \
+    --logdir $1/example_cardiac \
+    --extra_steps=0 --datadir $2 \
+    --vq_ckpt $1/vq_cardiac_d4.ckpt --vq_config $1/vq_cardiac_d4.yaml
+}
+
 logdir=logs
 filename=file_brain_AXT1POST_200_6002026
 
-#download_pretrained $logdir
+download_pretrained $logdir
 sampling_brain $logdir $logdir/image_seq.cfl
 unfolding $logdir $filename $logdir
 reconstruction $logdir $filename $logdir
+sampling_cardiac $logdir $logdir/cardiac_seq

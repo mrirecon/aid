@@ -126,13 +126,14 @@ def main(config, model_path, use_ddim=False, skip=10, extra_steps=0, logdir=None
                     image_size=config['image_size'],
                     mag=config['mag'],
                     dataset=config['dataset'])
-
-    seq = next(iter(data)).to(dist_util.dev())[None, :config['seq_length']+1, ...]
+    if config['latent']:
+        seq = th.tensor(abs(utils.readcfl(data_dir))).to(dist_util.dev())
+    else:
+        seq = next(iter(data)).to(dist_util.dev())[None, :config['seq_length']+1, ...]
     
     if config['latent']:
         seq = (seq - 0.5) / 0.5
-        tmp = th.concat([seq, seq, seq], 2)
-        seq = encode(tmp, batch_size=1)
+        seq = encode(seq, batch_size=1)
     x0 = seq[:, :-1, ...]
 
     if first_stage:

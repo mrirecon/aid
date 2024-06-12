@@ -21,7 +21,6 @@ python viewer.py logs/example_xxx/sample
 The results will be saved in `scripts/logs/example_xxx`, where `xxx` denotes the experiment name. Please use the `viewer.py` to visualize the samples. In the `examples.sh`, 
 
 * `download_pretrained`: Downloads pretrained models and sample data necessary for reconstruction and sampling.
-
 * `unfolding`: Performs MRI unfolding using pretrained models to generate high-resolution images using `sample.py`. 
 * `reconstruction`: Conducts volume reconstruction of MRI images using pretrained models using `fastmri_recon.py`.
 * `sampling_brain`: Generates sample MRI images using pretrained models using `sample.py`.
@@ -46,15 +45,17 @@ The [`CustomDataLoader`](scripts/utils.py) and [`CustomDataset`](scripts/utils.p
 
 ### Running the Training Stages
 
-Perform two-stage training manually using the two functions: `first_stage` and  `second_stage`, in the script [`train.sh`](scripts/train.sh). The `second_stage` function resumes training from the first stage checkpoint and only trains the temporal-spatial conditioning block. The `--resume_checkpoint` flag can be used to resume training from a checkpoint.
+Perform two-stage training manually using the two functions: `first_stage` and `second_stage`, in the script [`train.sh`](scripts/train.sh). The `second_stage` function resumes training from the first stage checkpoint and only trains the temporal-spatial conditioning block. The `--resume_checkpoint` flag can be used to resume training from a checkpoint.
 The `one_stage` function is a combined training stage with a different configuration suitable for single-stage training.
 
 ## Miscellaneous
+We provided the binary file for BART reconstruction toolbox on this [link](https://huggingface.co/Guanxiong/MRI-Image-Priors/tree/main/Data). If it doesn't work on your local system, please clone the [BART repository](https://github.com/mrirecon/bart) and compile it on your local system.
+
+We provided a latent space model for cardiac cine image generation, in which the VQVAE model is trained on the cardiac cine dataset using the code in this repository [`taming-transformers`](https://github.com/CompVis/taming-transformers.git). Please install it when you want to generate cardiac cine images.
+
 We provided [`recon_all.sh`](scripts/recon_all.sh) for performing MRI reconstruction of the validation data in the fastMRI dataset on HPC cluster. This script will submit a job for each of the validation data. The job contains many tasks that are defined in [`recon_func.sh`](scripts/recon_func.sh). The script [`recon_func.sh`](scripts/recon_func.sh) will perform reconstruction experiments using the pretrained models and save the results in the specified directory. If you are interested in running the script, please update the variables in the script according to your environment.
 
 We provided [`image_train.py`](scripts/image_train.py) for training the normal image diffusion model. The command to use it is included in [`train.sh`](scripts/train.sh).
-
-We provided the binary file for BART reconstruction toolbox on this [link](https://huggingface.co/Guanxiong/MRI-Image-Priors/tree/main/Data). If it doesn't work on your local system, please clone the [BART repository](https://github.com/mrirecon/bart) and compile it on your local system.
 
 ## Contact
 If you have any questions, please contact Guanxiong Luo (luoguan5@gmail.com) or raise an issue in the repository.

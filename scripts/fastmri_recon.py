@@ -30,7 +30,7 @@ def ddim_diffusion(xt, model, b, T, step_size, cond_iters, cond_func=None, tempo
     losses = []
 
     times = ddnm.get_schedule_jump(T, 1, 1)
-    time_pairs = list(zip(times[:-1], times[1:]))        
+    time_pairs = list(zip(times[:-1], times[1:]))
 
     pbar = tqdm(time_pairs)
     pbar_labels = ['loss', 'mean', 'min', 'max']

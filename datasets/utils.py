@@ -3,6 +3,10 @@ import subprocess as sp
 import os
 import tempfile
 
+BART_PATH = os.environ.get('BART_PATH')
+if BART_PATH is None:
+    raise ValueError("BART_PATH not set")
+
 def readcfl(name):
     """
     read cfl file
@@ -85,7 +89,7 @@ def bart(nargout, cmd, *args, return_str=False):
     outfiles = [name + 'out' + str(idx) for idx in range(nargout)]
     out_str = ' '.join(outfiles)
 
-    shell_str = 'bart ' + cmd + ' ' + in_str + ' ' + out_str
+    shell_str = BART_PATH + ' ' + cmd + ' ' + in_str + ' ' + out_str
     print(shell_str)
     if not return_str:
         ERR = os.system(shell_str)
@@ -113,7 +117,7 @@ def bart(nargout, cmd, *args, return_str=False):
             os.remove(elm + '.hdr')
 
     if ERR:
-        print("Make sure you install bart properly")
+        print("Make sure bart is properly installed")
         raise Exception("Command exited with an error.")
 
     if nargout == 1:

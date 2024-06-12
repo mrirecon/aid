@@ -1,12 +1,18 @@
+set -e
+
 download_pretrained(){
     echo "Downloading pretrained models"
     mkdir -p $1
     cd $1
-    wget https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/AID/fastmri_320_cplx.pt
-    wget https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/AID/normal_fastmri_320_cplx.pt
-    wget https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/image_seq.cfl
-    wget https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/image_seq.hdr
-    wget https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/file_brain_AXT1POST_200_6002026.h5
+    wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/AID/fastmri_320_cplx.pt
+    wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/AID/normal_fastmri_320_cplx.pt
+    wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/image_seq.cfl
+    wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/image_seq.hdr
+    wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/file_brain_AXT1POST_200_6002026.h5
+    wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/bart
+    
+    chmod +x bart
+    export BART_PATH=$PWD/bart
     cd -
 }
 
@@ -45,7 +51,7 @@ sampling_brain()
 logdir=logs
 filename=file_brain_AXT1POST_200_6002026
 
-download_pretrained $logdir
+#download_pretrained $logdir
 sampling_brain $logdir $logdir/image_seq.cfl
 unfolding $logdir $filename $logdir
 reconstruction $logdir $filename $logdir

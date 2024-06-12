@@ -9,12 +9,15 @@ import subprocess
 import yaml
 import torchvision.transforms.functional as F
 import os
-import cv2
 from torch import fft as torch_fft
 import tempfile
-from skimage.metrics import structural_similarity, peak_signal_noise_ratio
 
 import debugpy
+
+BART_PATH = os.environ.get('BART_PATH')
+if BART_PATH is None:
+    raise ValueError("BART_PATH not set")
+
 #### MRI UTILS ####
 
 def to_tensor(x, device='cuda'):
@@ -88,7 +91,7 @@ def bart(nargout, cmd, *args, return_str=False):
     outfiles = [name + 'out' + str(idx) for idx in range(nargout)]
     out_str = ' '.join(outfiles)
 
-    shell_str = 'bart ' + cmd + ' ' + in_str + ' ' + out_str
+    shell_str = BART_PATH + ' ' + cmd + ' ' + in_str + ' ' + out_str
     print(shell_str)
     if not return_str:
         ERR = os.system(shell_str)
@@ -116,37 +119,13 @@ def bart(nargout, cmd, *args, return_str=False):
             os.remove(elm + '.hdr')
 
     if ERR:
-        print("Make sure you install bart properly")
+        print("Make sure bart is properly installed")
         raise Exception("Command exited with an error.")
 
     if nargout == 1:
         output = output[0]
 
     return output
-
-def psnr(img1, img2):
-    """
-    calculate peak SNR, img1-true, img2-test
-    """
-    pixel_max = np.max(img2)
-    
-    img1 = img1.astype(np.float64)
-    img2 = img2.astype(np.float64)
-    pixel_max = pixel_max.astype(np.float64)
-
-    return peak_signal_noise_ratio(img1, img2, data_range=pixel_max)
-
-
-def ssim(img1, img2):
-    """
-    calcualte similarity index between img1 and img2
-    """
-    
-    scale = np.max(img2)
-    img1.astype(np.float64)
-    img2.astype(np.float64)
-    scale.astype(np.float64)
-    return structural_similarity(img1, img2, data_range=scale)
 
 #### DATA UTILS ####
 
@@ -451,19 +430,6 @@ def subplot(ax, img, title, cmap, interpolation, vmin, vmax):
 
 plot_params = {'cmap': 'gray', 'interpolation': 'none', 'vmin': 0}
 axplot      = partial(subplot, **plot_params)
-
-def seq_to_video(sequence, output_path, fps=25.):
-    height, width = sequence.shape[1], sequence.shape[2]
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    video_writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-
-    for frame in sequence:
-        frame = fabs(frame)
-        frame = (frame * 255).astype('uint8')
-        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-        video_writer.write(frame)
-
-    video_writer.release()
 
 def fabs(x):
     

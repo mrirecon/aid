@@ -14,7 +14,7 @@ pip install -e .
 
 ## Run examples
 ```sh
-cd ar
+cd scripts
 bash examples.sh
 python viewer.py logs/example_xxx/sample
 ```
@@ -33,7 +33,6 @@ The results will be saved in `scripts/logs/example_xxx`, where `xxx` denotes the
 ![Prospective samples](https://arxiv.org/html/2405.14327v2/x3.png)
 ### Prospective samples (coldstart)
 ![Prospective samples](https://arxiv.org/html/2405.14327v2/x4.png)
-
 ### Reconstruction of MRI images
 ![MRI reconstruction](https://arxiv.org/html/2405.14327v2/x9.png)
 
@@ -55,6 +54,8 @@ We provided [`recon_all.sh`](scripts/recon_all.sh) for performing MRI reconstruc
 
 We provided [`image_train.py`](scripts/image_train.py) for training the normal image diffusion model. The command to use it is included in [`train.sh`](scripts/train.sh).
 
+We provided the binary file for BART reconstruction toolbox on this [link](https://huggingface.co/Guanxiong/MRI-Image-Priors/tree/main/Data). If it doesn't work on your local system, please clone the [BART repository](https://github.com/mrirecon/bart) and compile it on your local system.
+
 ## Contact
 If you have any questions, please contact Guanxiong Luo (luoguan5@gmail.com) or raise an issue in the repository.
 
@@ -62,7 +63,7 @@ If you have any questions, please contact Guanxiong Luo (luoguan5@gmail.com) or 
 If you find this code useful, please consider citing the following paper:
 ```
 @article{luo2024autoregressive,
-  title={Autoregressive Image Diffusion: Generating Image Sequence and Application in MRI},
+  title={Autoregressive Image Diffusion: Generation of Image Sequence and Application in MRI},
   author={Luo, Guanxiong and Huang, Shoujin and Uecker, Martin},
   journal={arXiv preprint arXiv:2405.14327},
   year={2024}

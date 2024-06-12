@@ -1,5 +1,5 @@
 # Preparing datasets
-This README file provides instructions for using the Python script to preprocess the the [fastMRI](https://fastmri.med.nyu.edu/) dataset. The script processes HDF5 files, extracts k-space data, performs the Fourier transform to reconstruct images, and saves the images in cfl format.
+This README file provides instructions for using the Python script to preprocess the [fastMRI](https://fastmri.med.nyu.edu/) dataset. The script processes HDF5 files, extracts k-space data, performs the Fourier transform to reconstruct images, and saves the images in cfl format.
 
 
 ## Usage
@@ -14,19 +14,16 @@ This README file provides instructions for using the Python script to preprocess
 
 1. Open a terminal or command prompt.
 2. Navigate to the directory containing the script.
-3. Run the script with the desired arguments. For example:
+3. Download the BART binary file from the provided link, make it executable and set the `BART_PATH` environment variable to it.
+3. Run the script with the desired arguments.
 
+For example:
 ```bash
-python preprocess_fastmri.py --data_folder /path/to/input --save_folder /path/to/output --start_id 1000
+wget -nv https://huggingface.co/Guanxiong/MRI-Image-Priors/resolve/main/Data/bart
+chmod +x bart
+export BART_PATH=$(pwd)/bart
+python fastmri.py --data_folder /path/to/input --save_folder /path/to/output --start_id 1000
 ```
-
-### Example
-
-```bash
-python preprocess_fastmri.py --data_folder /scratch/gluo/compressed/fastMRI/multicoil_train --save_folder /scratch/gluo/fastMRI --start_id 1000000
-```
-
-This command processes the fastMRI dataset located in `/scratch/gluo/compressed/fastMRI/multicoil_train` and saves the processed images to `/scratch/gluo/fastMRI`, starting with a file ID of `1000000`.
 
 ## Utility Functions
 
@@ -43,10 +40,8 @@ Ensure these functions are correctly implemented in the `utils` module.
 
 The script handles corrupted HDF5 files by printing an error message and skipping the file. If no files are found in the specified data folder, it prints a "No files found" message and exits.
 
+We provided the binary file for BART reconstruction toolbox on this [link](https://huggingface.co/Guanxiong/MRI-Image-Priors/tree/main/Data). If it doesn't work on your local system, please clone the [BART repository](https://github.com/mrirecon/bart) and compile it on your local system and set the `BART_PATH` environment variable to the path of the compiled binary.
+
 ## Contact
 
 For any questions or issues, please contact the script author or maintainer.
-
----
-
-This README should help you understand and use the fastMRI preprocessing script effectively. Make sure to check and adapt the paths and parameters according to your environment and data.

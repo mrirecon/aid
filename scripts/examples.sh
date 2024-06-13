@@ -70,4 +70,4 @@ download_pretrained $logdir
 sampling_brain $logdir $logdir/image_seq.cfl
 unfolding $logdir $filename $logdir
 reconstruction $logdir $filename $logdir
-sampling_cardiac $logdir $logdir/cardiac_seq
+#sampling_cardiac $logdir $logdir/cardiac_seq

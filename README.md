@@ -18,13 +18,13 @@ cd scripts
 bash examples.sh
 python viewer.py logs/example_xxx/sample
 ```
-The results will be saved in `scripts/logs/example_xxx`, where `xxx` denotes the experiment name. Please use the `viewer.py` to visualize the samples. In the `examples.sh`, 
+The results will be saved in `scripts/logs/example_xxx`, where `xxx` denotes the experiment name. Please use the `viewer.py` to visualize the samples. It take around 3 hours to complete the following five tasks in the `examples.sh`.
 
 * `download_pretrained`: Downloads pretrained models and sample data necessary for reconstruction and sampling.
 * `unfolding`: Performs MRI unfolding using pretrained models to generate high-resolution images using `sample.py`. 
 * `reconstruction`: Conducts volume reconstruction of MRI images using pretrained models using `fastmri_recon.py`.
 * `sampling_brain`: Generates sample MRI images using pretrained models using `sample.py`.
-
+* `sampling_cardiac`: Generates sample cardiac cine images using pretrained models using `sample.py`.
 
 ### Retrospective samples
 ![Retrospective samples](https://arxiv.org/html/2405.14327v2/x2.png)

@@ -10,10 +10,10 @@ The [Causal-Unet](guided_diffusion/unet2.py) is implemented upon the original Un
 <table>
   <tr>
     <td>
-        <img src="misc/brain.gif" alt="Video 1" width="420" height="315">
+        <img src="misc/brain.gif" alt="Video 1" width="420" height="420">
     </td>
     <td>
-      <img src="misc/cine.gif" alt="Video 1" width="420" height="315">
+      <img src="misc/cine.gif" alt="Video 1" width="420" height="420">
     </td>
   </tr>
 </table>

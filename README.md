@@ -10,16 +10,10 @@ The [Causal-Unet](guided_diffusion/unet2.py) is implemented upon the original Un
 <table>
   <tr>
     <td>
-      <video width="420" height="315" controls>
-        <source src="misc/brain.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
+        <img src="misc/brain.gif" alt="Video 1" width="420" height="315">
     </td>
     <td>
-      <video width="420" height="315" controls>
-        <source src="misc/cine.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
+      <img src="misc/cine.gif" alt="Video 1" width="420" height="315">
     </td>
   </tr>
 </table>

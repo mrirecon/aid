@@ -5,15 +5,29 @@ with modifications for the training and sampling of autoregressive image diffusi
 
 The [Causal-Unet](guided_diffusion/unet2.py) is implemented upon the original Unet architecture to allow for autoregressive mechanisms imposed on image sequences. In [gaussian_diffusion.py](guided_diffusion/gaussian_diffusion.py), we added function `training_losses_temporal` for training AID models to exploit dependencies in image sequences and some other relevant modifications, and we added function `p_sample_temporal_loop` for sampling image sequences prospectively and some other relevant modifications.
 
-## Sequential samples
+## Sequential samples from models trained on different datasets
 
 <table>
+  <tr>
+    <td>
+        FastMRI 2D multi-slices
+    </td>
+    <td>
+        Cardiac Cine
+    </td>
+    <td>
+       ABIDE 3D volume
+    </td>
+  </tr>
   <tr>
     <td>
         <img src="misc/brain.gif" alt="Video 1" width="315" height="315">
     </td>
     <td>
       <img src="misc/cine.gif" alt="Video 1" width="315" height="315">
+    </td>
+    <td>
+      <img src="misc/abide_vol.gif" alt="Video 1" width="315" height="315">
     </td>
   </tr>
 </table>

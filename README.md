@@ -21,13 +21,13 @@ The [Causal-Unet](guided_diffusion/unet2.py) is implemented upon the original Un
   </tr>
   <tr>
     <td>
-        <img src="misc/brain.gif" alt="Video 1" width="315" height="315">
+        <img src="misc/brain.gif" alt="Video 1" width="256" height="256">
     </td>
     <td>
-      <img src="misc/cine.gif" alt="Video 1" width="315" height="315">
+      <img src="misc/cine.gif" alt="Video 1" width="256" height="256">
     </td>
     <td>
-      <img src="misc/abide_vol.gif" alt="Video 1" width="315" height="315">
+      <img src="misc/abide_vol.gif" alt="Video 1" width="256" height="256">
     </td>
   </tr>
 </table>

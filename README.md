@@ -70,7 +70,7 @@ The [`CustomDataLoader`](scripts/utils.py) and [`CustomDataset`](scripts/utils.p
 - `datadir`: Directory containing the dataset.
 - `image_size`: Size of the images.
 
-### Running the Training Stages
+### Running the training stages
 
 Perform two-stage training manually using the two functions: `first_stage` and `second_stage`, in the script [`train.sh`](scripts/train.sh). The `second_stage` function resumes training from the first stage checkpoint and only trains the temporal-spatial conditioning block. The `--resume_checkpoint` flag can be used to resume training from a checkpoint.
 The `one_stage` function is a combined training stage with a different configuration suitable for single-stage training.

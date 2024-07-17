@@ -74,6 +74,7 @@ The [`CustomDataLoader`](scripts/utils.py) and [`CustomDataset`](scripts/utils.p
 
 Perform two-stage training manually using the two functions: `first_stage` and `second_stage`, in the script [`train.sh`](scripts/train.sh). The `second_stage` function resumes training from the first stage checkpoint and only trains the temporal-spatial conditioning block. The `--resume_checkpoint` flag can be used to resume training from a checkpoint.
 The `one_stage` function is a combined training stage with a different configuration suitable for single-stage training.
+Pretrained models are hosted on [huggingface](https://huggingface.co/Guanxiong/MRI-Image-Priors/tree/main/AID).
 
 ## Miscellaneous
 We provided the binary file for BART reconstruction toolbox on this [link](https://huggingface.co/Guanxiong/MRI-Image-Priors/tree/main/Data). If it doesn't work on your local system, please clone the [BART repository](https://github.com/mrirecon/bart) and compile it on your local system.

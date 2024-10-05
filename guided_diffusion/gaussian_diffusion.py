@@ -491,6 +491,7 @@ class GaussianDiffusion:
         temporal=False,
         x0=None,
         noisy_x0=False,
+        start_point=-1,
     ):
         """
         Generate samples from the model.
@@ -527,6 +528,7 @@ class GaussianDiffusion:
             temporal=temporal,
             x0=x0,
             noisy_x0=noisy_x0,
+            start_point=start_point
         ):
             final = sample
         return final["sample"]
@@ -549,6 +551,7 @@ class GaussianDiffusion:
         warm_start=True,
         noisy_x0=False,
         use_adpative_variance=False,
+        start_point=-1,
     ):
         """
         use this functions to predict the next image in the future given x0 -- a sequence of images
@@ -590,7 +593,8 @@ class GaussianDiffusion:
                 temporal=True,
                 x0=x0,
                 noisy_x0=noisy_x0,
-                use_adpative_variance=use_adpative_variance
+                use_adpative_variance=use_adpative_variance,
+                start_point=start_point
             )
             for sample in iter_fn():
                 continue
@@ -631,6 +635,7 @@ class GaussianDiffusion:
         x0=None,
         noisy_x0=False,
         use_adpative_variance=False,
+        start_point=-1
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -647,9 +652,16 @@ class GaussianDiffusion:
         assert isinstance(shape, (tuple, list))
         if noise is not None:
             img = noise
-        else:
+        elif not temporal or start_point == -1:
             img = th.randn(*shape, device=device)
-        indices = list(range(self.num_timesteps))[::-1]
+        else:
+            alpha_bar = _extract_into_tensor(self.alphas_cumprod, th.tensor([start_point-1]*shape[0], device=device), shape) # start_point is natural countering from 1
+            if shape[1] == 1:
+                img = x0[:, -1:, ...]*alpha_bar.sqrt() + (1 - alpha_bar).sqrt() * th.randn(*shape, device=device)
+            else:
+                img = x0*alpha_bar.sqrt() + (1 - alpha_bar).sqrt() * th.randn(*shape, device=device)
+
+        indices = list(range(0, self.num_timesteps if start_point == -1 else start_point))[::-1]
 
         if progress:
             # Lazy import so that we don't depend on tqdm.
@@ -682,6 +694,7 @@ class GaussianDiffusion:
         model,
         x,
         t,
+        skip,
         clip_denoised=True,
         denoised_fn=None,
         cond_fn=None,
@@ -689,6 +702,7 @@ class GaussianDiffusion:
         eta=0.0,
         temporal=False,
         x0=None,
+        noisy_x0=False, # not implemented
     ):
         """
         Sample x_{t-1} from the model using DDIM.
@@ -713,7 +727,8 @@ class GaussianDiffusion:
         eps = self._predict_eps_from_xstart(x, t, out["pred_xstart"])
 
         alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, x.shape)
-        alpha_bar_prev = _extract_into_tensor(self.alphas_cumprod_prev, t, x.shape)
+        prev_step = t - skip + 1 if t - skip + 1 >= 0 else th.zeros_like(t)
+        alpha_bar_prev = _extract_into_tensor(self.alphas_cumprod_prev, prev_step, x.shape)
         sigma = (
             eta
             * th.sqrt((1 - alpha_bar_prev) / (1 - alpha_bar))
@@ -729,8 +744,7 @@ class GaussianDiffusion:
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
         )  # no noise when t == 0
         sample = mean_pred + nonzero_mask * sigma * noise
-        if temporal:
-            sample = th.cat([sample, x0], dim=-1)
+        
         return {"sample": sample, "pred_xstart": out["pred_xstart"]}
 
     def ddim_reverse_sample(
@@ -777,6 +791,7 @@ class GaussianDiffusion:
         model,
         shape,
         seq_length,
+        skip=1,
         extra_steps=0,
         noise=None,
         clip_denoised=True,
@@ -785,14 +800,39 @@ class GaussianDiffusion:
         model_kwargs=None,  
         device=None,
         progress=False,
-        eta=0.0,):
-        final = None
-        for i in range(seq_length):
+        eta=0.0,
+        warm_start=True,
+        noisy_x0=False,
+        start_point=-1, # start from the step T 
+        ):
+        
+        assert extra_steps >= 0
+        if extra_steps > 0:
+            holder = []
+
+        model_kwargs = {"sampling": True}
+
+        i = 0
+
+        while i < seq_length+extra_steps:
+
+            if not warm_start and i < seq_length:
+                model_kwargs["idx_t"] = i
+            else:
+                model_kwargs["idx_t"] = -1
+
             if i != 0:
-                x0[:, i, ...] = sample['sample'][:, i-1, ...].chunk(2, dim=-1)[0].detach().clone()
+                new_elem = sample['sample'] 
+                if not warm_start and i < seq_length:
+                    x0[:, i-1, ...] = new_elem # update x0 from the begining to the end
+                else:
+                    x0 = th.cat((x0[:, 1:, ...], new_elem), dim=1) # update x0 by dropping the first element and adding the new element to the end
+
+            # iterative function to go through the full diffusion process
             iter_fn = partial(self.ddim_sample_loop_progressive,
                 model,
                 shape,
+                skip,
                 noise=noise,
                 clip_denoised=clip_denoised,
                 denoised_fn=denoised_fn,
@@ -803,10 +843,31 @@ class GaussianDiffusion:
                 eta=eta,
                 temporal=True,
                 x0=x0,
+                noisy_x0=noisy_x0,
+                start_point=start_point
             )
             for sample in iter_fn():
-                final = sample
-        return final["sample"]
+                continue
+
+            if i >= seq_length - 1: 
+                # without extra_steps, we return x0 after update it for the last element
+                if extra_steps == 0:
+                    new_elem = sample['sample'] 
+                    if warm_start:
+                        return th.cat((x0[:, 1:, ...], new_elem), dim=1)
+                    else:
+                         x0[:, i, ...] = new_elem
+                         return x0
+                else:
+                    # reach to the end with extra_steps, we return x0 after update it for the last element
+                    if i == seq_length + extra_steps - 1:
+                        new_elem = sample['sample']
+                        x0 = th.cat((x0[:, 1:, ...], new_elem), dim=1)
+                        return th.cat((th.cat(holder, dim=1), x0), dim=1)
+                    # with extra_steps, we store the first element of x0 that will be dropped in the next iteration
+                    else:
+                        holder.append(x0[:, 1:2, ...])
+            i += 1
         
 
                
@@ -814,6 +875,7 @@ class GaussianDiffusion:
         self,
         model,
         shape,
+        skip=1,
         noise=None,
         clip_denoised=True,
         denoised_fn=None,
@@ -824,8 +886,8 @@ class GaussianDiffusion:
         eta=0.0,
         temporal=False,
         x0=None,
-        skip=1,
-        noisy_x0=False
+        noisy_x0=False, # not implemented yet
+        start_point=-1, # start from the step T
     ):
         """
         Generate samples from the model using DDIM.
@@ -838,6 +900,7 @@ class GaussianDiffusion:
         for sample in self.ddim_sample_loop_progressive(
             model,
             shape,
+            skip,
             noise=noise,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
@@ -848,7 +911,8 @@ class GaussianDiffusion:
             eta=eta,
             temporal=temporal,
             x0=x0,
-            skip=skip
+            noisy_x0=noisy_x0,
+            start_point=start_point
         ):
             final = sample
         return final["sample"]
@@ -857,6 +921,7 @@ class GaussianDiffusion:
         self,
         model,
         shape,
+        skip,
         noise=None,
         clip_denoised=True,
         denoised_fn=None,
@@ -867,7 +932,8 @@ class GaussianDiffusion:
         eta=0.0,
         temporal=False,
         x0=None,
-        skip=1
+        noisy_x0=False,
+        start_point=-1,
     ):
         """
         Use DDIM to sample from the model and yield intermediate samples from
@@ -880,9 +946,17 @@ class GaussianDiffusion:
         assert isinstance(shape, (tuple, list))
         if noise is not None:
             img = noise
-        else:
+        elif not temporal or start_point == -1:
             img = th.randn(*shape, device=device)
-        indices = list(range(0, self.num_timesteps, skip))[::-1]
+        else:
+            alpha_bar = _extract_into_tensor(self.alphas_cumprod, th.tensor([start_point-1]*shape[0], device=device), shape) # start_point is natural countering from 1
+
+            if shape[1] == 1:
+                img = x0[:, -1:, ...]*alpha_bar.sqrt() + (1 - alpha_bar).sqrt() * th.randn(*shape, device=device)
+            else:
+                img = x0*alpha_bar.sqrt() + (1 - alpha_bar).sqrt() * th.randn(*shape, device=device)
+
+        indices = list(range(0, self.num_timesteps if start_point == -1 else start_point, skip))[::-1]
 
         if progress:
             # Lazy import so that we don't depend on tqdm.
@@ -897,6 +971,7 @@ class GaussianDiffusion:
                     model,
                     img,
                     t,
+                    skip,
                     clip_denoised=clip_denoised,
                     denoised_fn=denoised_fn,
                     cond_fn=cond_fn,
@@ -904,6 +979,7 @@ class GaussianDiffusion:
                     eta=eta,
                     temporal=temporal,
                     x0=x0,
+                    noisy_x0=noisy_x0,
                 )
                 yield out
                 img = out["sample"]

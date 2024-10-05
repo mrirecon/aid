@@ -210,13 +210,17 @@ class TrainLoop:
         ):
             if temporal:
                 batch = next(self.data)
-
+		# TODO: in the dataloader
                 if self.latent:
                     b = batch.shape[0]
                     t = batch.shape[1]
-                    tmp = th.concat([batch, batch, batch], 2)
+                    if batch.shape[2] == 1:
+                        tmp = th.concat([batch, batch, batch], 2)
+                    else:
+                        tmp = batch
                     tmp = einops.rearrange(tmp, 'b t c h w  -> (b t) c h w')
-                    tmp = (tmp - 0.5) / 0.5
+                    if batch.shape[2] == 1:
+                        tmp = (tmp - 0.5) / 0.5
                     batch = self.encode(tmp.to(dist_util.dev()))
                     batch = einops.rearrange(batch, '(b t) c h w -> b t c h w', b=b, t=t, c=4 if self.vae else 3) # 4 is the latent size
 
@@ -225,9 +229,13 @@ class TrainLoop:
                 x1 = deepcopy(batch[:, 1:, ...])
                 batch = th.cat([x0, x1], dim=-1)
             else:
-                # the cond training is disabled
                 batch = next(self.data)
                 cond = {}
+                if isinstance(batch, (list, tuple)):
+                    if len(batch) == 2:
+                        batch, cond = batch
+                    else:
+                        raise ValueError(f"unexpected batch format: {batch}, please check your dataloader")
 
             self.run_step(batch, cond, temporal, noisy_x0, multistage)
             if self.step % self.log_interval == 0:
@@ -261,7 +269,8 @@ class TrainLoop:
             last_batch = (i + self.microbatch) >= batch.shape[0]
             t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
 
-            micro_cond['multistage'] = multistage
+            if temporal:   # causal_unet is used for temporal
+                micro_cond['multistage'] = multistage
 
             compute_losses = functools.partial(
                 self.diffusion.training_losses if not temporal else functools.partial(self.diffusion.training_losses_temporal, noisy_x0=noisy_x0),

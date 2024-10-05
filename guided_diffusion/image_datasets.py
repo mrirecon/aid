@@ -3,10 +3,9 @@ import random
 
 from PIL import Image
 import blobfile as bf
-from mpi4py import MPI
 import numpy as np
 from torch.utils.data import DataLoader, Dataset
-
+import torch.distributed as dist
 
 def load_data(
     *,
@@ -41,17 +40,15 @@ def load_data(
     all_files = _list_image_files_recursively(data_dir)
     classes = None
     if class_cond:
-        # Assume classes are the first part of the filename,
-        # before an underscore.
-        class_names = [bf.basename(path).split("_")[0] for path in all_files]
+        class_names = [bf.dirname(path).split("_")[-1] for path in all_files]
         sorted_classes = {x: i for i, x in enumerate(sorted(set(class_names)))}
         classes = [sorted_classes[x] for x in class_names]
     dataset = ImageDataset(
         image_size,
         all_files,
         classes=classes,
-        shard=MPI.COMM_WORLD.Get_rank(),
-        num_shards=MPI.COMM_WORLD.Get_size(),
+        shard=dist.get_rank(),
+        num_shards=dist.get_world_size(),
         random_crop=random_crop,
         random_flip=random_flip,
     )

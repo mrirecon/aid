@@ -60,7 +60,7 @@ The results will be saved in `scripts/logs/example_xxx`, where `xxx` denotes the
 ### Prospective samples (coldstart)
 ![Prospective samples](https://arxiv.org/html/2405.14327v2/x4.png)
 ### Reconstruction of MRI images
-![MRI reconstruction](https://arxiv.org/html/2405.14327v2/x9.png)
+![MRI reconstruction](https://arxiv.org/html/2405.14327v4/extracted/5907634/Figures/fig2_12x.png)
 
 ## Training models
 

@@ -93,6 +93,7 @@ def causal_model_and_diffusion_defaults():
         complicated_x0=False,
         num_complicated=0,
         concat_cond=True,
+        pos_emb=False,
     )
     res.update(diffusion_defaults())
     return res
@@ -251,6 +252,7 @@ def create_causal_model_and_diffusion(
     complicated_x0,
     num_complicated,
     concat_cond,
+    pos_emb,
 ):
     model = create_causal_seq_model(
         image_size,
@@ -276,6 +278,7 @@ def create_causal_model_and_diffusion(
         complicated_x0=complicated_x0,
         num_complicated=num_complicated,
         concat_cond=concat_cond,
+        pos_emb=pos_emb,
     )
     diffusion = create_gaussian_diffusion(
         steps=diffusion_steps,
@@ -313,6 +316,7 @@ def create_causal_seq_model(
     complicated_x0=False,
     num_complicated=0,
     concat_cond=True,
+    pos_emb=False,
 ):
     if channel_mult == "":
         if image_size == 512:
@@ -368,6 +372,7 @@ def create_causal_seq_model(
         complicated_x0=complicated_x0,
         num_complicated=num_complicated,
         concat_cond=concat_cond,
+        pos_emb=pos_emb,
     )
 
 def create_classifier_and_diffusion(

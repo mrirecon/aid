@@ -23,6 +23,7 @@ from .nn import (
     LayerNorm32,
     Linear32,
     freeze_module,
+    positional_embedding,
 )
 
 class AttentionPool2d(nn.Module):
@@ -673,7 +674,7 @@ class DiTBlock(CondTimestepBlock):
     """
     DiTBlock with causal attention mask
     """
-    def __init__(self, hidden_size, cond_dims, num_heads, emb_shape, mlp_ratio=4.0, seq_len=5, dtype=th.float32):
+    def __init__(self, hidden_size, cond_dims, num_heads, emb_shape, mlp_ratio=4.0, seq_len=5, pos=False, dtype=th.float32):
         super().__init__()
         self.norm1 = LayerNorm32(hidden_size, elementwise_affine=False, eps=1e-6)
         self.attn = Attention(hidden_size, heads=num_heads, bias=True, seq_len=seq_len, dtype=dtype)
@@ -685,6 +686,17 @@ class DiTBlock(CondTimestepBlock):
             nn.SiLU(),
             Linear32(cond_dims, 6 * hidden_size, bias=True)
         )
+
+        self.pos_emb = pos
+        if self.pos_emb:
+            #self.pemb = positional_embedding(cond_dims, seq_len, seq_dim=1)
+            self.ada_pos_emb = nn.Sequential(
+                nn.SiLU(),
+                Linear32(cond_dims, 3 * hidden_size, bias=True)
+            )
+            self.mlpe = Mlp(in_features=hidden_size, hidden_features=mlp_hidden_dim, act_layer=approx_gelu, drop=0)
+            self.norm3 = LayerNorm32(hidden_size, elementwise_affine=False, eps=1e-6)
+
         self.emb_shape = emb_shape
 
     def forward(self, x, emb, **kwargs):
@@ -696,6 +708,12 @@ class DiTBlock(CondTimestepBlock):
         emb = einops.rearrange(emb, '(b t) c -> b t c', t = self.emb_shape[0])[:,0,:]
         emb = einops.repeat(emb, 'b c -> b c h w', h = self.emb_shape[2], w = self.emb_shape[3])
         emb = SwitchDims((1, self.emb_shape[1], self.emb_shape[2], self.emb_shape[3]))(emb)
+        
+        if self.pos_emb and 'pemb' in kwargs.keys():
+            pos_emb = kwargs['pemb']
+            shift_pe, scale_pe, gate_pe = self.ada_pos_emb(pos_emb).chunk(3, dim=2)
+            x = x + mul32(gate_pe, self.mlpe(modulate32(self.norm3(x), shift_pe, scale_pe)))
+
         shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = self.adaLN_modulation(emb).chunk(6, dim=2)
         
         x = x + mul32(gate_msa, self.attn(modulate32(self.norm1(x), shift_msa, scale_msa), idx_t=idx_t))
@@ -866,6 +884,7 @@ class CausalUNetModel(nn.Module):
         complicated_x0=False,
         num_complicated=0,
         concat_cond=True, 
+        pos_emb=False,    # positional embedding length, if 0, no positional embedding
     ):
         super().__init__()
 
@@ -891,6 +910,8 @@ class CausalUNetModel(nn.Module):
         self.dilations = dilations
         self.complicated_x0 = complicated_x0
         self.concat_cond = concat_cond  
+        self.pos_emb = pos_emb
+        self.seq_len = seq_len
 
         time_embed_dim = model_channels * 4
         self.time_embed = nn.Sequential(
@@ -1008,7 +1029,7 @@ class CausalUNetModel(nn.Module):
                 for _ in range(num_complicated):
                     layers = layers + [
                     SwitchDims(connect_shape),
-                    DiTBlock(chs, time_embed_dim, num_heads, [seq_len, time_embed_dim, image_size//res, image_size//res], seq_len=seq_len, dtype=self.dtype) if not use_causal_gated 
+                    DiTBlock(chs, time_embed_dim, num_heads, [seq_len, time_embed_dim, image_size//res, image_size//res], seq_len=seq_len, pos=pos_emb, dtype=self.dtype) if not use_causal_gated 
                     else DiTBlockCausalGate(chs, time_embed_dim, num_heads, [seq_len, time_embed_dim, image_size//res, image_size//res], seq_len=seq_len, dtype=self.dtype),
                     SwitchDimsT(connect_shape),
                     ResBlock(
@@ -1022,7 +1043,7 @@ class CausalUNetModel(nn.Module):
                             down=False)]
                 layers = layers + [
                     SwitchDims(connect_shape),
-                    DiTBlock(chs, time_embed_dim, num_heads, [seq_len, time_embed_dim, image_size//res, image_size//res], seq_len=seq_len, dtype=self.dtype) if not use_causal_gated 
+                    DiTBlock(chs, time_embed_dim, num_heads, [seq_len, time_embed_dim, image_size//res, image_size//res], seq_len=seq_len, pos=pos_emb, dtype=self.dtype) if not use_causal_gated 
                     else DiTBlockCausalGate(chs, time_embed_dim, num_heads, [seq_len, time_embed_dim, image_size//res, image_size//res], seq_len=seq_len, dtype=self.dtype),
                     SwitchDimsT(connect_shape),
                     ResBlock(
@@ -1174,6 +1195,8 @@ class CausalUNetModel(nn.Module):
 
         time_embed = freeze_module(self.time_embed) if multistage == 2 else self.time_embed
         semb = time_embed(timestep_embedding(timesteps, self.model_channels))
+        if self.pos_emb:
+            pemb = positional_embedding(self.model_channels*4, self.seq_len, seq_dim=1, device=semb.device)
 
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
@@ -1195,7 +1218,7 @@ class CausalUNetModel(nn.Module):
 
             if x0_e and multistage !=1:
                 
-                x0 = self.x0_blocks[idx](x0, emb)
+                x0 = self.x0_blocks[idx](x0, emb, **{"pemb": pemb} if self.pos_emb else {})
                 idx += 1
                 if idx > 1:
                     h = self.connectors[idx-2](h, x0, emb)
@@ -1228,6 +1251,8 @@ class CausalUNetModel(nn.Module):
 
         hs = []
         semb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
+        if self.pos_emb:
+            pemb = positional_embedding(self.model_channels*4, self.seq_len, seq_dim=1, device=semb.device)
 
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
@@ -1245,7 +1270,7 @@ class CausalUNetModel(nn.Module):
         idx = 0
         for module, con in zip(self.input_blocks, self.x0_existed):
             if con:
-                x0 = self.x0_blocks[idx](x0, emb, **{"idx_t": idx_t})
+                x0 = self.x0_blocks[idx](x0, emb, **{"idx_t": idx_t, "pemb": pemb} if self.pos_emb else {"idx_t": idx_t})
                 idx += 1
                 if idx > 1:
                     x0_T = MergeDimsT((t_x, x0.size(1), x0.size(2), x0.size(3)))(x0)

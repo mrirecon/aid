@@ -113,6 +113,17 @@ def mean_flat(tensor):
     """
     return tensor.mean(dim=list(range(1, len(tensor.shape))))
 
+def append_dims(x, target_dims):
+    """Appends dimensions to the end of a tensor until it has target_dims dimensions."""
+    dims_to_append = target_dims - x.ndim
+    if dims_to_append < 0:
+        raise ValueError(
+            f"input has {x.ndim} dims but target_dims is {target_dims}, which is less"
+        )
+    return x[(...,) + (None,) * dims_to_append]
+
+def append_zero(x):
+    return th.cat([x, x.new_zeros([1])])
 
 def normalization(channels):
     """
@@ -144,6 +155,54 @@ def timestep_embedding(timesteps, dim, max_period=10000):
         embedding = th.cat([embedding, th.zeros_like(embedding[:, :1])], dim=-1)
     return embedding
 
+
+class PositionalEncoding(nn.Module):
+
+    def __init__(self, emb_dims: int, dropout: float = 0.1, max_len: int = 5000, seq_dim: int = 0):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        position = th.arange(max_len).unsqueeze(1)
+        div_term = th.exp(th.arange(0, emb_dims, 2) * (-math.log(10000.0) / emb_dims))
+        pe = th.zeros(max_len, 1, emb_dims)
+        pe[:, 0, 0::2] = th.sin(position * div_term)
+        pe[:, 0, 1::2] = th.cos(position * div_term)
+        if seq_dim == 1:
+            pe = pe.transpose(0, 1)
+        self.register_buffer('pe', pe)
+        self.seq_dim = seq_dim
+
+    def forward(self, x: th.Tensor) -> th.Tensor:
+        """
+        Arguments:
+            x: Tensor, shape ``[seq_len or batch_size, batch_size or seq_len, embedding_dim]``
+        """
+        if self.seq_dim == 0:
+            x = x + self.pe[:x.size(0)]
+        elif self.seq_dim == 1:
+            x = x + self.pe[:, :x.size(1), :]
+        else:
+            raise ValueError(f"unsupported seq_dim: {self.seq_dim}")
+        return self.dropout(x)
+
+def positional_embedding(emb_dims, max_len=5000, seq_dim=0, device=None):
+    """
+    Create positional embeddings.
+
+    :param emb_dims: the dimension of the embeddings.
+    :param max_len: the maximum sequence length to support.
+    :param seq_dim: the dimension of the sequence length in the input.
+    :return: an positional embeddings.
+    """
+    position = th.arange(max_len).unsqueeze(1)
+    div_term = th.exp(th.arange(0, emb_dims, 2) * (-math.log(10000.0) / emb_dims))
+    pe = th.zeros(max_len, 1, emb_dims)
+    pe[:, 0, 0::2] = th.sin(position * div_term)
+    pe[:, 0, 1::2] = th.cos(position * div_term)
+    if seq_dim == 1:
+        pe = pe.transpose(0, 1)
+
+    return pe.to(device=device)
 
 def checkpoint(func, inputs, params, flag):
     """

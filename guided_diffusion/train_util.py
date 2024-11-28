@@ -171,7 +171,7 @@ class TrainLoop:
             self.model.load_state_dict(
                     dist_util.load_state_dict(
                         resume_checkpoint, map_location=dist_util.dev()
-                    )
+                    ), strict=False # for using openai's model
                 )
 
         dist_util.sync_params(self.model.parameters())
@@ -245,7 +245,6 @@ class TrainLoop:
                 # Run for a finite amount of time in integration tests.
                 if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.step > 0:
                     return
-            self.step += 1
         # Save the last checkpoint if it wasn't already saved.
         if (self.step - 1) % self.save_interval != 0:
             self.save()
@@ -254,6 +253,7 @@ class TrainLoop:
         self.forward_backward(batch, cond, temporal, noisy_x0, multistage)
         took_step = self.mp_trainer.optimize(self.opt)
         if took_step:
+            self.step += 1
             self._update_ema()
         self._anneal_lr()
         self.log_step()

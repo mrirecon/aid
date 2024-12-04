@@ -1,4 +1,4 @@
-# Autoregressive image diffusion: generation of image sequences and application in MRI reconstruction
+# Autoregressive image diffusion: generation of image sequences and application in MRI reconstruction (Accepted by NeurIPS 2024)
 
 This is the codebase for [Autoregressive Image Diffusion (AID)](https://arxiv.org/abs/2405.14327), which is built upon [openai/guided-diffusion](https://github.com/openai/guided-diffusion)
 with modifications for the training and sampling of autoregressive image diffusion models and its application to MRI reconstruction.

@@ -1,6 +1,6 @@
 # Autoregressive image diffusion: generation of image sequences and application in MRI reconstruction (Accepted by NeurIPS 2024)
 
-This is the codebase for [Autoregressive Image Diffusion (AID)](https://arxiv.org/abs/2405.14327), which is built upon [openai/guided-diffusion](https://github.com/openai/guided-diffusion)
+This is the codebase for [Autoregressive Image Diffusion (AID)](https://proceedings.neurips.cc/paper_files/paper/2024/hash/e93ac11b7e96337962fa38b0460ede3b-Abstract-Conference.html), which is built upon [openai/guided-diffusion](https://github.com/openai/guided-diffusion)
 with modifications for the training and sampling of autoregressive image diffusion models and its application to MRI reconstruction.
 
 The [Causal-Unet](guided_diffusion/unet2.py) is implemented upon the original Unet architecture to allow for autoregressive mechanisms imposed on image sequences. In [gaussian_diffusion.py](guided_diffusion/gaussian_diffusion.py), we added function `training_losses_temporal` for training AID models to exploit dependencies in image sequences and some other relevant modifications, and we added function `p_sample_temporal_loop` for sampling image sequences prospectively and some other relevant modifications.

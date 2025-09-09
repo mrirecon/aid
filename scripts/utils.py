@@ -14,10 +14,6 @@ import tempfile
 
 import debugpy
 
-BART_PATH = os.environ.get('BART_PATH')
-if BART_PATH is None:
-    raise ValueError("BART_PATH not set")
-
 #### MRI UTILS ####
 
 def to_tensor(x, device='cuda'):
@@ -91,7 +87,7 @@ def bart(nargout, cmd, *args, return_str=False):
     outfiles = [name + 'out' + str(idx) for idx in range(nargout)]
     out_str = ' '.join(outfiles)
 
-    shell_str = BART_PATH + ' ' + cmd + ' ' + in_str + ' ' + out_str
+    shell_str = 'bart' + ' ' + cmd + ' ' + in_str + ' ' + out_str
     print(shell_str)
     if not return_str:
         ERR = os.system(shell_str)
@@ -126,8 +122,6 @@ def bart(nargout, cmd, *args, return_str=False):
         output = output[0]
 
     return output
-
-#### DATA UTILS ####
 
 class CustomDataLoader(DataLoader):
     # when want to get slices out of the volume, set slice=True and vol_batch_size=1

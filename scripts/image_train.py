@@ -14,6 +14,7 @@ from guided_diffusion.script_util import (
 )
 from guided_diffusion.train_util import TrainLoop
 import utils
+import dataset
 
 def main():
     args = create_argparser().parse_args()
@@ -29,7 +30,16 @@ def main():
     schedule_sampler = create_named_schedule_sampler(args.schedule_sampler, diffusion)
 
     logger.log("creating data loader...")
-    data = utils.load_data(
+    if args.dataset == 'acrin':
+        data = dataset.load_data(
+            data_dir=args.data_dir,
+            batch_size=args.batch_size,
+            seq_length=1,
+            filelist=args.filelist,
+            slice=True
+        )
+    else:
+        data = utils.load_data(
         data_dir=args.data_dir,
         batch_size=args.batch_size,
         image_size=args.image_size,
@@ -81,6 +91,7 @@ def create_argparser():
         image_size=128,
         mag=True,
         in_channels=1,
+        filelist="/home/gluo/Documents/aid/scripts/filelist"
     )
     defaults.update(model_and_diffusion_defaults())
     parser = argparse.ArgumentParser()
